@@ -1,0 +1,3 @@
+namespace Qadr.Core;
+
+public sealed record MovementMeasurement(string Kind, double Time, long Sequence = 0L, string? State = null, string? Label = null, Observation? Face = null, bool? QualityAccepted = null, string? Reason = null, PointerOutput? Output = null, double? CursorX = null, double? CursorY = null, double? RequestedX = null, double? RequestedY = null, bool? NativeAccepted = null, double? ProcessingMs = null, double? InferenceMs = null, double? CaptureFps = null, double? TrackingFps = null, Profile? Profile = null, Settings? MovementSettings = null, double? TargetX = null, double? TargetY = null, double? TargetWidth = null, double? TargetHeight = null, AssessmentResult? AssessmentResult = null, MovementTuningStatus? Tuning = null);

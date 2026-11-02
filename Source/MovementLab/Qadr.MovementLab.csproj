@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType><UseWPF>true</UseWPF>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier><SelfContained>true</SelfContained>
+    <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
+    <AssemblyName>Qadr.MovementLab</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../RecoveredCore/Qadr.Core.csproj" /></ItemGroup>
+</Project>

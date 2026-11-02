@@ -1,0 +1,32 @@
+# Only reviewed source and publication documentation are tracked.
+/*
+!/.gitignore
+!/.github/
+!/Source/
+
+# Local build output and generated runtime/measurement files.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/Data/
+**/TestData/
+**/node_modules/
+**/*.user
+**/*.suo
+**/*.log
+**/*.jsonl
+**/*.csv
+**/*.zip
+**/*.dll
+**/*.exe
+**/*.pdb
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+
+# These local handoffs/generators contain historical personal measurements.
+/Source/README.md
+/Source/Analysis/build-performance-scorecard.mjs
+/Source/Analysis/create-codex-handoff.mjs
