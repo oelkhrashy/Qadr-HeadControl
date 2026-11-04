@@ -1,5 +1,7 @@
 # Studying Qadr's movement and clicks
 
+**Current movement revision: analog-wave-3 (4 November 2026).** [ANALOG-MOVEMENT.md](ANALOG-MOVEMENT.md) describes the active relative/adaptive vector blend and calibration; [POINTER-STABILITY.md](POINTER-STABILITY.md) describes temporal smoothing, and [CROSS-AXIS-NOISE.md](CROSS-AXIS-NOISE.md) describes the active coordinate bands. The per-axis algorithm below is still its low-confidence precision branch; it no longer describes the complete default travel response.
+
 ## Application boundary
 
 The packaged Python vision worker performs face inference. Its result contains head geometry, a face transformation matrix, expression scores, and the original capture timestamp. `Features.Extract` converts it into a typed `Observation`.

@@ -28,6 +28,12 @@ public sealed class AdaptiveAxisFilter
 
 	public bool RejectedSpike { get; private set; }
 
+	internal double Cutoff { get; private set; } = 1;
+
+	// A vector filter may share one cutoff while retaining each axis's
+	// noise and outlier estimates. Keep its prediction anchored to that output.
+	internal void Synchronize(double filtered) => value = filtered;
+
 	public void Settle()
 	{
 		value = accepted;
@@ -102,6 +108,7 @@ public sealed class AdaptiveAxisFilter
 		double num13 = Math.Max(num8 * num10, Math.Max(0.0, Math.Abs(num3 - value) - noise * 4.0) / (direct ? 0.055 : 0.12));
 		MotionConfidence = Math.Clamp(num13 / Math.Max(0.08, noise * 6.0), 0.0, 1.0);
 		double cutoff = Math.Clamp((0.45 + responsiveness * 1.8) / (1.0 + noise * 8.0) + (3.5 + responsiveness * 4.0) * num12, 0.35, 30.0);
+		Cutoff = cutoff;
 		value += Alpha(cutoff, dt) * (num3 - value);
 		return value;
 	}

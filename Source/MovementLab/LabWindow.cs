@@ -54,6 +54,7 @@ internal sealed class LabWindow:Window
     string partial="";
     double lastPose=double.NegativeInfinity;
     bool poseFrozen;
+    string? controllerRevision, controllerSha256;
 
     public LabWindow(bool preview,Func<double>? clock=null)
     {
@@ -152,7 +153,13 @@ internal sealed class LabWindow:Window
             while((end=partial.IndexOf('\n'))>=0)
             {
                 string line=partial[..end];partial=partial[(end+1)..];
-                try {using var doc=JsonDocument.Parse(line);var r=doc.RootElement;if(r.GetProperty("kind").GetString()!="sample")continue;lastPose=r.GetProperty("time").GetDouble();poseFrozen=r.GetProperty("output").GetProperty("frozen").GetBoolean();}
+                try {using var doc=JsonDocument.Parse(line);var r=doc.RootElement;
+                    string? kind=r.GetProperty("kind").GetString();
+                    if(kind=="session") {
+                        if(r.TryGetProperty("controllerRevision",out var revision))controllerRevision=revision.GetString();
+                        if(r.TryGetProperty("controllerSha256",out var hash))controllerSha256=hash.GetString();
+                    }
+                    if(kind!="sample")continue;lastPose=r.GetProperty("time").GetDouble();poseFrozen=r.GetProperty("output").GetProperty("frozen").GetBoolean();}
                 catch(JsonException) { }
             }
         }
@@ -245,7 +252,8 @@ internal sealed class LabWindow:Window
         try
         {
             Directory.CreateDirectory(folder);string stem=System.IO.Path.Combine(folder,session);
-            var summary=new{schema=2,holdBoundaryPolicy="fixed duration after settling; spatial drift is retained",createdUtc=DateTime.UtcNow,reason,synthetic=false,mode=traceExpected?"cursor-and-head":"cursor-only",headTrackingVerified=traceExpected,source="Physical cursor samples; use head control only. Physical helper input cannot be distinguished.",trials=results};
+            var summary=new{schema=2,holdBoundaryPolicy="fixed duration after settling; spatial drift is retained",createdUtc=DateTime.UtcNow,reason,synthetic=false,mode=traceExpected?"cursor-and-head":"cursor-only",headTrackingVerified=traceExpected,
+                controllerRevision,controllerSha256,source="Physical cursor samples; use head control only. Physical helper input cannot be distinguished.",trials=results};
             string json=Protocol.Encode(summary);File.WriteAllText(stem+".json",json);
             using(var csv=new StreamWriter(stem+"-cursor.csv"))
             {csv.WriteLine("time_qpc,x_px,y_px,valid,phase,trial");foreach(var p in cursorRows)csv.WriteLine(FormattableString.Invariant($"{p.Time:R},{p.X:R},{p.Y:R},{p.Valid},{p.Phase},{p.Trial}"));}

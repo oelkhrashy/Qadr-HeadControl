@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Security.Cryptography;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -46,7 +47,9 @@ internal static class MovementLabTrace
                 {
                     using var stream=new FileStream(path,FileMode.Create,FileAccess.Write,FileShare.ReadWrite);
                     using var writer=new StreamWriter(stream){AutoFlush=true};
-                    await writer.WriteLineAsync(Protocol.Encode(new{kind="session",schema=2,numericOnly=true,clock="QPC seconds",createdUtc=DateTime.UtcNow}));
+                    string controllerHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(MotionController).Assembly.Location)));
+                    await writer.WriteLineAsync(Protocol.Encode(new{kind="session",schema=2,numericOnly=true,clock="QPC seconds",createdUtc=DateTime.UtcNow,
+                        controllerRevision="analog-wave-3",controllerSha256=controllerHash,movementModel="capture-timed relative vector with independent axis noise bands"}));
                     await foreach(var item in channel.Reader.ReadAllAsync())
                     {
                         if(stream.Length>64*1024*1024||File.Exists(path+".stop"))break;

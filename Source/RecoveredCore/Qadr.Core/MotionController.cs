@@ -7,7 +7,7 @@ namespace Qadr.Core;
 
 public sealed class MotionController
 {
-	private RelativeHeadAxis[] headAxes = { new(), new() };
+	private AnalogHeadMotion analogMotion = new();
 	private ExpressionRest? expressionRest;
 
 	private Settings? effectiveSource;
@@ -122,7 +122,7 @@ public sealed class MotionController
 	}
 
 	public double MotionConfidence => Settings.Mapping == "relative" && Settings.MovementAlgorithm == "adaptive"
-		? Math.Max(headAxes[0].MotionConfidence, headAxes[1].MotionConfidence)
+		? analogMotion.MotionConfidence
 		: Math.Max(adaptiveFilters[0].MotionConfidence, adaptiveFilters[1].MotionConfidence);
 
 	public (double X, double Y, double Width, double Height)? ControlArea { get; set; }
@@ -196,7 +196,7 @@ public sealed class MotionController
 
 	private void ResetFilters()
 	{
-		headAxes = new RelativeHeadAxis[] { new(), new() };
+		analogMotion = new AnalogHeadMotion();
 		filters = new OneEuro[2]
 		{
 			new OneEuro(),
@@ -432,6 +432,9 @@ public sealed class MotionController
 		Span<double> span2 = stackalloc double[2];
 		Span<bool> span3 = stackalloc bool[2];
 		Span<double> span4 = stackalloc double[2];
+		Span<double> analogSignal = stackalloc double[2];
+		Span<double> analogNoise = stackalloc double[2];
+		bool analog = settings.Mapping == "relative" && settings.MovementAlgorithm == "adaptive";
 		for (int i = 0; i < 2; i++)
 		{
 			double num5 = profile.Signal(o, i);
@@ -449,15 +452,10 @@ public sealed class MotionController
 			double num10 = Math.Clamp(num9 * 3.0 / num6 + settings.Deadzone, 0.065, 0.32);
 			bool flag20 = settings.MovementAlgorithm == "adaptive" || settings.Mapping == "absolute";
 			double noise = num9 / num6;
-			if (settings.Mapping == "relative" && settings.MovementAlgorithm == "adaptive")
+			if (analog)
 			{
-				// A joystick dead zone would swallow fine corrections through neutral.
-				double gain = ((i == 0) ? Width : Height) * .7 * settings.Sensitivity;
-				span[i] = headAxes[i].Feed(num8, num, o.Timestamp, noise, gain,
-					settings.Responsiveness, settings.DirectResponse, settings.SteadyHold, settings.PrecisionNoiseMultiplier);
-				span2[i] = Normalized[i] = headAxes[i].Position;
-				span3[i] = headAxes[i].Stopped;
-				lastMapped[i] = span2[i];
+				analogSignal[i] = num8;
+				analogNoise[i] = noise;
 				continue;
 			}
 			double num11 = (flag20 ? adaptiveFilters[i].Feed(num8, num, noise, settings.Responsiveness, settings.DirectResponse, settings.Mapping != "rate") : filters[i].Feed(num8, (num == 0.0) ? 0.033 : num, settings.Responsiveness));
@@ -510,9 +508,20 @@ public sealed class MotionController
 			}
 			lastMapped[i] = span2[i];
 		}
+		if (analog)
+		{
+			var displacement = analogMotion.Feed(analogSignal[0], analogSignal[1], num,
+				o.Timestamp, analogNoise[0], analogNoise[1], Width * .7 * settings.Sensitivity,
+				Height * .7 * settings.Sensitivity, settings.Responsiveness,
+				settings.DirectResponse, settings.SteadyHold, settings.PrecisionNoiseMultiplier);
+			span[0] = displacement.X; span[1] = displacement.Y;
+			span2[0] = Normalized[0] = lastMapped[0] = analogMotion.PositionX;
+			span2[1] = Normalized[1] = lastMapped[1] = analogMotion.PositionY;
+			span3[0] = analogMotion.StoppedX; span3[1] = analogMotion.StoppedY;
+		}
 		if (settings.Mapping == "relative" && settings.RelativeTravelBoost > 1.0 && num > 0.0)
 		{
-			double num14 = ((settings.MovementAlgorithm == "adaptive") ? Math.Max(adaptiveFilters[0].MotionConfidence, adaptiveFilters[1].MotionConfidence) : 1.0);
+			double num14 = analog ? analogMotion.MotionConfidence : 1.0;
 			num14 *= travelIntent.Feed(span[0], span[1], num, Width, Height, settings.Sensitivity);
 			(double, double) tuple3 = RelativeReach.Apply(span[0], span[1], num, Width, Height, settings.Sensitivity, settings.RelativeTravelBoost, num14);
 			span[0] = tuple3.Item1;

@@ -2882,7 +2882,7 @@ internal sealed class Controller : IDisposable
 			}
 			else
 			{
-				text2 = (calibrationFeedback.Help.Contains("up or down") ? "vertical" : "sides");
+				text2 = this.calibration.Cue;
 			}
 			reference = text2;
 			guideX = calibrationFeedback.X;

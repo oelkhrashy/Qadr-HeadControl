@@ -15,13 +15,14 @@ static class ProcessSmoke
         foreach(string value in new[]{"--session",session,"--data-dir",data,"--shell-pid",Environment.ProcessId.ToString(),"--no-input","--test-source","--diagnostic-control"})info.ArgumentList.Add(value);
         using var process=Process.Start(info)!;
         SafetyGate? gate=null;SharedTransport? rpc=null;EngineStatus? latest=null;long sequence=0,frame=0;
-        double smile=0,eye=0,offset=0,yaw=0,noseOffset=0;bool missing=false,suspendResults=false;int checks=0;
+        double smile=0,eye=0,offset=0,yaw=0,pitch=0,noseOffset=0;bool missing=false,suspendResults=false;int checks=0;
         async Task Tick()
         {
             if(process.HasExited)throw new Exception("Diagnostic Guardian exited early; inspect "+data);
             rpc!.Send(new("heartbeat"));
             var status=rpc.Read(ref sequence);if(status is not null)latest=status;
-            double[] matrix=[Math.Cos(yaw),0,Math.Sin(yaw),0,0,1,0,0,-Math.Sin(yaw),0,Math.Cos(yaw),0,0,0,0,1];
+            double cy=Math.Cos(yaw),sy=Math.Sin(yaw),cp=Math.Cos(pitch),sp=Math.Sin(pitch);
+            double[] matrix=[cy,-sy*sp,sy*cp,0,0,cp,sp,0,-sy,-cy*sp,cy*cp,0,0,0,0,1];
             if(!suspendResults)rpc.Send(new("diagnosticResult",DiagnosticResult:new(1,"result",Sequence:++frame,Captured:Arguments.Now,Matrix:matrix,
                 Blendshapes:new(){{"mouthSmileLeft",smile},{"mouthSmileRight",smile},{"eyeBlinkLeft",eye},{"eyeBlinkRight",0}},
                 Geometry:missing?null:new(.5+offset,.45,.2,.5+offset+noseOffset,.5,.3+offset,.2,.7+offset,.8,0))));
@@ -100,6 +101,26 @@ static class ProcessSmoke
             missing=true;await Wait(()=>latest?.State=="Degraded");
             rpc.Send(new("stop"));await Wait(()=>gate.Stopped&&latest?.State=="Stopped");missing=false;await Frames(35);
             Check(gate.Stopped&&latest?.State=="Stopped","an explicit Stop during tracking loss cannot be undone by an aligned returning face");
+            // Exercise the existing RPC/UI calibration path, with no input and
+            // private data, not just the standalone Calibration class.
+            double neutralYaw=yaw;
+            rpc.Send(new("calibrate",UserStopEpoch:gate.UserStops));
+            await Wait(()=>latest?.State=="Calibrating");
+            Check(gate.Stopped,"the Qadr calibration screen keeps native control stopped during collection");
+            long calibrationStarted=Environment.TickCount64;
+            while(latest?.State!="ClickSetup"&&Environment.TickCount64-calibrationStarted<55000)
+            {
+                string title=latest?.Title.ToLowerInvariant()??"";
+                yaw=neutralYaw+(title.Contains("right")?.08:title.Contains("left")?-.06:0);
+                pitch=title.Contains("up")?.05:title.Contains("down")?-.07:0;
+                await Tick();
+            }
+            Check(latest?.State=="ClickSetup"&&gate.Stopped,"the real Engine completes the guided analog wizard using existing Qadr status and controls");
+            string profileKey="profiles/"+Storage.DeviceKey("diagnostic-camera")+".json";
+            await Wait(()=>storage.Load<Profile>(profileKey)?.CalibrationDetails is not null,5000);
+            var learned=storage.Load<Profile>(profileKey)!;
+            Check(learned.IsValid&&learned.CalibrationDetails!.DirectionSamples.All(n=>n>=8)&&learned.CalibrationDetails.UnmeasuredDirections.Length==0,
+                "the Engine saves a backward-compatible profile with measured up/down and repeated collection evidence");
             rpc.Send(new("shutdown"));Check(process.WaitForExit(5000),"supplied application processes shut down cleanly");
             Console.WriteLine($"{checks} process smoke checks passed. --no-input and synthetic diagnostic observations; no webcam, microphone or desktop clicks were used.");
         }

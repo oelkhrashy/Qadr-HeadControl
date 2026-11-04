@@ -5,6 +5,8 @@ namespace Qadr.Core;
 
 public sealed record Profile
 {
+	public CalibrationDetails? CalibrationDetails { get; init; }
+
 	public int CoordinateVersion { get; init; } = 1;
 
 	public double[] Neutral { get; init; } = new double[2];

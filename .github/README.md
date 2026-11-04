@@ -2,7 +2,9 @@
 
 Qadr is a Windows x64 head-controlled mouse learning project. It maps webcam-derived head observations to cursor movement and supports smile/mouth left-clicking, deliberate wink right-clicking, calibration and tracking recovery.
 
-The current revision is `recovery-review-2` (2 November 2026). Free horizontal, vertical and diagonal movement is preserved. After tracking loss, control waits for valid stable tracking. A changed comfortable posture can be adopted after a four-second stable hold, followed by the resting check. Active click gestures prevent adoption.
+The current revision is `analog-wave-3` (4 November 2026). It keeps Qadr's existing interface and combines relative precision/vector movement with additional capture-timed travel smoothing and bounded coordinate noise bands using independent movement evidence. Free diagonals remain available. Calibration collects comfortable left, right, up and down movements twice and stores noise/range evidence. See [the movement equations](../Source/ANALOG-MOVEMENT.md) and [the active noise-band equations and tradeoffs](../Source/CROSS-AXIS-NOISE.md).
+
+After tracking loss, control waits for valid stable tracking. A changed comfortable posture can be adopted after a four-second stable hold, followed by the resting check. Active click gestures prevent adoption.
 
 ## Source
 
@@ -31,7 +33,7 @@ The delivery scripts `Build-Controller.ps1`, `Build-Recovery.ps1`, `Build-Moveme
 
 ## Verification and goals
 
-The local delivery passed 91 controller checks, 156 public-interface checks and 20 synthetic process checks. A further 2,400 comparisons preserved the previously delivered horizontal/downward movement behavior. These figures describe the local delivery; original binaries and verification reports are excluded here, so a source-only checkout cannot reproduce every check.
+The local delivery passed 155 controller checks, 156 public-interface checks and 23 synthetic process checks. An 18-case horizontal wave comparison, two 24-scenario matched benchmarks, three step probes, a 300-sample bypass comparison and two historical pose replays compare the revised movement with the preceding delivery. Filtering reduces synthetic variation but can reduce reach or worsen some path/drift metrics. These are offline checks; current live comfort, native input accuracy and end-to-end performance remain unmeasured. Original comparison binaries and personal recordings are excluded here, so a source-only checkout cannot reproduce every comparison.
 
 The target is successful qualification of every supported function. Overall real-world accuracy is unmeasured. Synthetic pass rates do not establish live accuracy, physical cursor injection, native click correctness or comfort. Horizontal drift and resting steadiness remain areas for live validation. The current recovery revision still needs live validation.
 

@@ -19,7 +19,18 @@ static class Tests
         for(int i=1;i<=fps;i++){var p=c.Feed(O(1+(double)i/fps,end),x,y);x+=p.Dx;total+=p.Dx;}
         return total;
     }
-    static void Main(string[] args) {
+    static int Main(string[] args) {
+        try { Run(args); return 0; }
+        catch (Exception error) {
+            Console.Error.WriteLine("FAIL: " + error);
+            return 1;
+        }
+    }
+    static void Run(string[] args) {
+        if(args.Length>0&&args[0]=="--analog-benchmark"){AnalogBenchmark.Run(args[1],args[2]);return;}
+        if(args.Length>0&&args[0]=="--analog-recording"){AnalogRecordingReplay.Run(args[1],args[2],args[3],args[4]);return;}
+        if(args.Length>0&&args[0]=="--stability-benchmark"){StabilityBenchmark.Run(args[1],args[2]);return;}
+        if(args.Length>0&&args[0]=="--wave-benchmark"){WaveMovementTests.Compare(args[1],args[2]);return;}
         if(args.Length>0&&args[0]=="--quality-replay"){QualityReplay.Run(args[1],args[2]);return;}
         if(args.Length>0&&args[0]=="--lab-mode"){LabModeTests.Run();return;}
         if(args.Length>0&&args[0]=="--process-smoke") { ProcessSmoke.Run(args[1],args[2]).GetAwaiter().GetResult(); return; }
@@ -29,6 +40,9 @@ static class Tests
         VerticalBalanceTests.Run(Check);
         MovementQualityTests.Run(Check);
         RecoveryAlignmentTests.Run(Check);
+        AnalogMovementTests.Run(Check);
+        StabilityBenchmark.Tests(Check);
+        WaveMovementTests.Tests(Check);
         double small=Travel(30,end:.004);
         Check(small>15&&small<40,"fine horizontal motion through neutral is not swallowed by a dead zone");
         Check(Travel(30,start:.08,end:.084)>15,"the same fine correction works away from neutral");
@@ -145,10 +159,12 @@ static class Tests
         foreach(var t in a.GetExportedTypes()) {
             var target=b.GetType(t.FullName!);Check(target is not null,"public type preserved: "+t.FullName);
             var before=t.GetMembers(BindingFlags.Public|BindingFlags.Instance|BindingFlags.Static|BindingFlags.DeclaredOnly).Select(Signature).Order().ToArray();
-            // This revision adds one serialized settings migration marker. All
-            // pre-existing public signatures must still match exactly.
+            // Only these additive members are new; every original signature
+            // (including constructors and generated record methods) must match.
             var after=target!.GetMembers(BindingFlags.Public|BindingFlags.Instance|BindingFlags.Static|BindingFlags.DeclaredOnly)
                 .Where(m=>t.FullName!="Qadr.Core.Settings"||m.Name is not ("VerticalBalanceVersion" or "get_VerticalBalanceVersion" or "set_VerticalBalanceVersion"))
+                .Where(m=>t.FullName!="Qadr.Core.Profile"||m.Name is not ("CalibrationDetails" or "get_CalibrationDetails" or "set_CalibrationDetails"))
+                .Where(m=>t.FullName!="Qadr.Core.Calibration"||m.Name is not ("Cue" or "get_Cue"))
                 .Select(Signature).Order().ToArray();
             Check(before.SequenceEqual(after),"public members preserved: "+t.FullName);
         }
