@@ -22,6 +22,13 @@ public sealed record Settings
 
 	public double SteadyHold { get; init; } = 0.75;
 
+	// Relative pointing only: hold the pointer while the head moves slower
+	// than this person's measured still-speed (see StillnessPark).
+	// Off by default: very slow, very small deliberate corrections (under
+	// the person's own sway) are held too, which conflicts with the F07
+	// fine-correction goal. Turn on to trade those for a steady rest.
+	public bool ParkWhenStill { get; init; } = false;
+
 	public double CentreAnchoring { get; init; } = 0;
 
 	public double Responsiveness { get; init; } = 0.38;

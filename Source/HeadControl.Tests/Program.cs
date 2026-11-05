@@ -38,6 +38,8 @@ static class Tests
         if(args.Length>0&&args[0]=="--api") { Api(args[1],args[2]); return; }
         if(args.Length>0&&args[0]=="--vertical-regression") { VerticalBalanceTests.Regression(args[1],args[2]); return; }
         VerticalBalanceTests.Run(Check);
+        ReviewFixTests.Run(Check);
+        StillnessParkTests.Run(Check);
         MovementQualityTests.Run(Check);
         RecoveryAlignmentTests.Run(Check);
         AnalogMovementTests.Run(Check);
@@ -126,7 +128,7 @@ static class Tests
         Check(clicks==2,"two distinct deliberate winks produce two right-clicks");
     }
     static void ConflictTests() {
-        var c=Control(new Settings{ClickMethod="smile",SmileLearned=true,SmileThreshold=.48});int left=0,right=0;double moved=0;
+        var c=Control(new Settings{ClickMethod="smile",SmileLearned=true,EyesLearned=true,SmileThreshold=.48});int left=0,right=0;double moved=0;
         for(int i=0;i<120;i++) {
             bool gesture=i>=15&&i<42;var p=c.Feed(O(i/30.0,gesture?.05:0,smile:gesture?.8:0,left:gesture?.9:0),900,500);
             if(p.Click=="left")left++;if(p.Click=="right")right++;if(i>=15&&i<50)moved+=Math.Abs(p.Dx);

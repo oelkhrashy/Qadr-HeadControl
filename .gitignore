@@ -3,6 +3,11 @@
 !/.gitignore
 !/.github/
 !/Source/
+!/HeadMouse-Python/
+
+# Python environments and caches for HeadMouse-Python
+**/.venv/
+**/__pycache__/
 
 # Local build output and generated runtime/measurement files.
 **/bin/
