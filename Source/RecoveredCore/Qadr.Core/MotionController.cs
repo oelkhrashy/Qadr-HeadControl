@@ -8,6 +8,10 @@ namespace Qadr.Core;
 public sealed class MotionController
 {
 	private AnalogHeadMotion analogMotion = new();
+
+	private readonly StillnessPark park = new();
+
+	public bool Parked => park.Parked;
 	private ExpressionRest? expressionRest;
 
 	private Settings? effectiveSource;
@@ -64,6 +68,21 @@ public sealed class MotionController
 	private Observation? distanceRest;
 
 	private bool dwellFired;
+
+	// After Qadr itself moves the pointer (startup or recovery centring), the
+	// pointer is somewhere the user did not choose. Dwell stays disarmed until
+	// the user has moved it at least two dwell radii.
+	private bool dwellNeedsMove;
+
+	private (double X, double Y)? dwellMoveOrigin;
+
+	public void DisarmDwellUntilMoved()
+	{
+		dwellNeedsMove = true;
+		dwellMoveOrigin = null;
+		dwellSince = null;
+		dwellFired = false;
+	}
 
 	private bool wasGesture;
 
@@ -169,6 +188,7 @@ public sealed class MotionController
 			throw new InvalidDataException("Invalid movement profile");
 		}
 		Profile = p.WithBalancedDirections();
+		park.Configure(Profile);
 		trackingScale = p.Scale;
 		expressionRest = null;
 		effectiveSettings = null;
@@ -197,6 +217,7 @@ public sealed class MotionController
 	private void ResetFilters()
 	{
 		analogMotion = new AnalogHeadMotion();
+		park.Reset();
 		filters = new OneEuro[2]
 		{
 			new OneEuro(),
@@ -321,7 +342,10 @@ public sealed class MotionController
 		}
 		bool active = eyes.Active;
 		bool qualified = eyes.Qualified;
-		bool flag = eyes.Feed((o.LeftEye < 0.0) ? o.Blink : o.LeftEye, (o.RightEye < 0.0) ? o.Blink : o.RightEye, settings, o.Timestamp);
+		// Right-click by eye only once the user has taught Qadr their wink.
+		// The default RightClickMethod is "either", and without this gate a
+		// slow blink right-clicked before any lesson had been done.
+		bool flag = settings.EyesLearned && eyes.Feed((o.LeftEye < 0.0) ? o.Blink : o.LeftEye, (o.RightEye < 0.0) ? o.Blink : o.RightEye, settings, o.Timestamp);
 		if (active && !eyes.Active)
 		{
 			eyeReleased = o.Timestamp;
@@ -508,6 +532,10 @@ public sealed class MotionController
 			}
 			lastMapped[i] = span2[i];
 		}
+		if (analog && settings.ParkWhenStill)
+		{
+			(analogSignal[0], analogSignal[1]) = park.Feed(o.Timestamp, analogSignal[0], analogSignal[1]);
+		}
 		if (analog)
 		{
 			var displacement = analogMotion.Feed(analogSignal[0], analogSignal[1], num,
@@ -617,6 +645,21 @@ public sealed class MotionController
 		{
 			double num24 = Math.Max(Width * profile.Noise[0] / profile.Ranges[0].Min(), Height * profile.Noise[1] / profile.Ranges[1].Min()) * 0.7 * settings.Sensitivity * settings.DwellNoiseProjection;
 			double num25 = Math.Max(settings.DwellRadius, Math.Min(settings.DwellMaximumRadius, num24 * settings.DwellNoiseMultiplier));
+			if (dwellNeedsMove)
+			{
+				dwellMoveOrigin ??= (x, y);
+				double mx = x - dwellMoveOrigin.Value.X, my = y - dwellMoveOrigin.Value.Y;
+				if (mx * mx + my * my > 4.0 * num25 * num25)
+				{
+					dwellNeedsMove = false;
+					dwellMoveOrigin = null;
+				}
+				else
+				{
+					dwellSince = null;
+					dwellFired = false;
+				}
+			}
 			bool flag25 = false;
 			for (int k = 0; k < 2; k++)
 			{
@@ -624,7 +667,10 @@ public sealed class MotionController
 			}
 			double num26 = x - dwellX;
 			double num27 = y - dwellY;
-			if ((!dwellSince.HasValue || num26 * num26 + num27 * num27 > num25 * num25) | flag25)
+			if (dwellNeedsMove)
+			{
+			}
+			else if ((!dwellSince.HasValue || num26 * num26 + num27 * num27 > num25 * num25) | flag25)
 			{
 				dwellX = x;
 				dwellY = y;
@@ -643,7 +689,7 @@ public sealed class MotionController
 					gestureY = dwellY;
 				}
 			}
-			if (dwellFired || o.Timestamp - dwellSince.Value >= settings.DwellLockSeconds)
+			if (!dwellNeedsMove && (dwellFired || o.Timestamp - dwellSince!.Value >= settings.DwellLockSeconds))
 			{
 				span.Clear();
 				flag23 = true;

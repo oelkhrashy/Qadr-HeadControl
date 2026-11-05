@@ -278,7 +278,7 @@ internal sealed class Controller : IDisposable
 
 	private bool workerFailed;
 
-	private int workerRestarts;
+	private readonly WorkerRestartPolicy workerRestarts = new();
 
 	private double fps;
 
@@ -756,6 +756,7 @@ internal sealed class Controller : IDisposable
 				}
 				startupPointer.Complete();
 				motion.Reset();
+				motion.DisarmDwellUntilMoved();
 				trajectory.Clear();
 			}
 		}
@@ -1205,7 +1206,7 @@ internal sealed class Controller : IDisposable
 			{
 				gate.Stop();
 				active = false;
-				if (workerRestarts++ == 0)
+				if (workerRestarts.Allow(now))
 				{
 					workerReady = false;
 					workerFailed = true;
@@ -2297,6 +2298,7 @@ internal sealed class Controller : IDisposable
 		voiceKey = null;
 		lastFailure = null;
 		startup.Begin();
+		ClearRecoveryAlignment();
 		if (cameraRunning)
 		{
 			gate.Stop();
@@ -2355,7 +2357,7 @@ internal sealed class Controller : IDisposable
 		returnUserStops = gate.UserStops;
 		state = "Ready";
 		cue = "rest";
-		title = "Welcome back â€” your movement is saved";
+		title = "Welcome back — your movement is saved";
 		help = "Rest comfortably. Qadr will recentre without repeating movement calibration.";
 	}
 
@@ -2386,8 +2388,20 @@ internal sealed class Controller : IDisposable
 		}
 	}
 
+	// Paths that set lastGeneration themselves skip the generation-change
+	// block that clears recovery alignment, so they must clear it here.
+	// Otherwise calibration guidance after a tracking loss is judged against
+	// the old profile (possibly another camera's) until a four-second hold.
+	private void ClearRecoveryAlignment()
+	{
+		alignOnRecovery = false;
+		recoveryAlignment.Reset();
+		recoveryExpressionSettings = null;
+	}
+
 	private void StartCalibration()
 	{
+		ClearRecoveryAlignment();
 		InterruptLaunch();
 		CancelRestLesson();
 		gate.Stop();
@@ -2464,6 +2478,7 @@ internal sealed class Controller : IDisposable
 
 	private void StartLesson(string kind)
 	{
+		ClearRecoveryAlignment();
 		CancelRestLesson();
 		if (!face)
 		{
@@ -2758,7 +2773,7 @@ internal sealed class Controller : IDisposable
 				returning = true;
 				resumeRest.Reset();
 				state = "Degraded";
-				title = "Tracking paused â€” your calibration is kept";
+				title = "Tracking paused — your calibration is kept";
 				help = "Bring your whole face back into view and rest briefly.";
 			}
 			personal.Break();
@@ -3056,7 +3071,7 @@ internal sealed class Controller : IDisposable
 		{
 			ClearMouse();
 			trajectory.Clear();
-			distance = "Adjusting to your new distance â€” rest briefly";
+			distance = "Adjusting to your new distance — rest briefly";
 			cue = "rest";
 			return;
 		}
@@ -3098,7 +3113,7 @@ internal sealed class Controller : IDisposable
 					headScroll.Start(observation, profile6, cursor2.X, cursor2.Y);
 				}
 			}
-			clickFeedback = (flag3 ? "Scroll mode off" : "Scroll mode on â€” move head up/down; repeat mouth gesture to exit");
+			clickFeedback = (flag3 ? "Scroll mode off" : "Scroll mode on — move head up/down; repeat mouth gesture to exit");
 			clickFeedbackUntil = num + 2.0;
 			return;
 		}
@@ -3212,7 +3227,7 @@ internal sealed class Controller : IDisposable
 			{
 				mouse.Select(mode);
 			}
-			clickFeedback = ((mode == "release") ? "Released â€” left click" : mouse.Help);
+			clickFeedback = ((mode == "release") ? "Released — left click" : mouse.Help);
 			clickFeedbackUntil = Arguments.Now + 2.0;
 		}
 	}
@@ -3558,7 +3573,7 @@ internal sealed class Controller : IDisposable
 		}
 		else
 		{
-			stopShortcut = ((gate.Hotkeys == 2) ? "Ctrl+Alt+Esc (Esc is unavailable)" : "No stop shortcut is available â€” control is blocked");
+			stopShortcut = ((gate.Hotkeys == 2) ? "Ctrl+Alt+Esc (Esc is unavailable)" : "No stop shortcut is available — control is blocked");
 		}
 		CameraDevice[] array = cameras;
 		string? text5 = preview;

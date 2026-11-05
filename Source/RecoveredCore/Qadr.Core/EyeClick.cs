@@ -40,7 +40,11 @@ public sealed class EyeClick
             "left" => left >= threshold && right < release,
             "right" => right >= threshold && left < release,
             "both" => both,
-            _ => Math.Max(left, right) >= threshold
+            // "either" means a WINK with either eye: one eye closed while the
+            // other stays open. Both eyes closing together is a blink, and a
+            // slow, tired blink must never right-click. Users who cannot wink
+            // choose "both" explicitly.
+            _ => (left >= threshold && right < release) || (right >= threshold && left < release)
         };
         if (!armed)
         {
@@ -61,7 +65,7 @@ public sealed class EyeClick
             held += dt;
         }
         bilateral |= both;
-        if (settings.RightClickMethod is "left" or "right" && both) canceled = true;
+        if (settings.RightClickMethod is "either" or "left" or "right" && both) canceled = true;
         if (now - started.Value > 2.5) canceled = true;
         double required = bilateral ? Math.Max(.4, settings.RightClickHold) : settings.RightClickHold;
         Progress = Math.Clamp(held / Math.Max(.25, required), 0, 1);

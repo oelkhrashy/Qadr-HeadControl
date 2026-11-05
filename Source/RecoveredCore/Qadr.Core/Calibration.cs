@@ -125,6 +125,7 @@ public sealed class Calibration
     private CalibrationFeedback? Finish(Observation o)
     {
         string[] modes = new string[2]; double[][] ranges = new double[2][], measured = new double[2][];
+        int[] channelOf = new int[2];
         double[] noises = new double[2], consistency = new double[4]; int[] counts = new int[4]; var missing = new List<string>();
         for (int axis = 0; axis < 2; axis++)
         {
@@ -134,6 +135,7 @@ public sealed class Calibration
             bool useShift = Percentile(rotation.Select(Math.Abs), .85) < Math.Max(.035, baseline[axis] * 5) &&
                 Strength(translation, axis + 2) > Strength(rotation, axis) * 1.8;
             int best = useShift ? axis + 2 : axis;
+            channelOf[axis] = best;
             double[] values = useShift ? translation : rotation;
             modes[axis] = useShift ? "shift" : "turn"; noises[axis] = baseline[best];
             double floor = Math.Max(baseline[best] * 4, useShift ? .025 : .01);
@@ -156,11 +158,27 @@ public sealed class Calibration
             // Existing one-sided accessibility fallback, now explicitly labelled.
             ranges[axis] = [Math.Clamp(lo > 0 ? lo : observed, floor, 5), Math.Clamp(hi > 0 ? hi : observed, floor, 5)];
         }
+        double[] restSpeed = new double[2], restSway = new double[2];
+        for (int axis = 0; axis < 2; axis++)
+        {
+            double range = Math.Max(1e-6, (ranges[axis][0] + ranges[axis][1]) / 2);
+            var series = restSamples.Select(s => (T: s.Timestamp, V: Channels(s, rest)[channelOf[axis]] / range)).ToArray();
+            var speeds = new List<double>();
+            for (int i = 0, j = 0; i < series.Length; i++)
+            {
+                while (j < series.Length && series[j].T - series[i].T < .2) j++;
+                if (j < series.Length) speeds.Add(Math.Abs(series[j].V - series[i].V) / (series[j].T - series[i].T));
+            }
+            restSpeed[axis] = speeds.Count > 0 ? Percentile(speeds, .95) : 0;
+            double mean = series.Length > 0 ? series.Average(v => v.V) : 0;
+            restSway[axis] = series.Length > 1 ? Math.Sqrt(series.Average(v => (v.V - mean) * (v.V - mean))) : 0;
+        }
         var profile = (rest! with { Modes = modes, Ranges = ranges, Noise = noises,
             CalibrationDetails = new CalibrationDetails { RestRms = rms, RestP95 = p95,
                 MeasuredRanges = measured, DirectionSamples = counts,
                 RepeatConsistency = consistency,
                 UnmeasuredDirections = missing.ToArray(), RestSamples = restSamples.Count,
+                RestSpeedP95 = restSpeed, RestSway = restSway,
                 MovementSamples = movement.Sum(m => m.Count), CaptureSeconds = o.Timestamp - started!.Value } }).WithBalancedDirections();
         return new("Your analog movement is learned", missing.Count == 0 ?
             "Both directions of both axes were measured. Return to your relaxed position." :

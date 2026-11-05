@@ -493,7 +493,7 @@ internal sealed class RoutineService : IDisposable
 							throw new InvalidOperationException("A routine target is missing or ambiguous. Qadr stopped before acting. Review or record this step again.");
 						}
 						string name2 = step.Target.Path[0].Name;
-						if (Regex.IsMatch(name2, "\\b(send|delete|pay|purchase|buy|submit|confirm order)\\b|إرسال|ارسال|حذف|دفع|شراء|تأكيد الطلب", RegexOptions.IgnoreCase))
+						if (RoutineSafety.NeedsConfirmation(name2) || Regex.IsMatch(name2, "\\b(send|delete|pay|purchase|buy|submit|confirm order)\\b|إرسال|ارسال|حذف|دفع|شراء|تأكيد الطلب", RegexOptions.IgnoreCase))
 						{
 							WaitingForConfirmation = true;
 							confirm.Reset();
