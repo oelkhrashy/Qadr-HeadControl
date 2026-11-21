@@ -11,6 +11,10 @@
 - Keep processing CPU-only.
 - Escape and the voice stop command must keep working.
 
+## Build & test
+- No .NET SDK is on PATH. Use the pinned SDK 10.0.401 at `D:\Codex_Agents\Qadr\work\toolchain\dotnet\dotnet.exe` (set `DOTNET_ROOT` to that folder).
+- To verify, run only the restore/build/test steps from `build.ps1`; running the whole script also publishes over the packaged app in `outputs/Qadr-Windows`.
+
 ## Tuning
 - Change one gain, filter or gesture threshold at a time.
 - Report before/after results on the same recordings.
