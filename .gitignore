@@ -46,6 +46,9 @@ TestData/
 *.pem
 *.key
 
+# Local agent settings
+.claude/
+
 # OS / misc
 Thumbs.db
 .DS_Store
