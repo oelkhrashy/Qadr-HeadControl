@@ -20,6 +20,32 @@ __pycache__/
 .venv/
 venv/
 
+# Python / PyInstaller build output
+build/
+dist/
+*.spec
+
+# Compiled binaries
+*.dll
+*.exe
+*.pdb
+
+# User data: profiles, settings and movement recordings
+# (D:/Codex_Agents/Qadr/data and any copy of it must never be committed)
+data/
+Data/
+TestData/
+*.jsonl
+*-summary.json
+*.csv
+*.zip
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
 # OS / misc
 Thumbs.db
 .DS_Store
