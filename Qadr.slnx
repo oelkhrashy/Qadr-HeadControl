@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Qadr.Core/Qadr.Core.csproj"/>
+  <Project Path="Qadr.Guardian/Qadr.Guardian.csproj"/>
+  <Project Path="Qadr.Engine/Qadr.Engine.csproj"/>
+  <Project Path="Qadr.Shell/Qadr.Shell.csproj"/>
+  <Project Path="Qadr.Tests/Qadr.Tests.csproj"/>
+</Solution>

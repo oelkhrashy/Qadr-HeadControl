@@ -1,0 +1,26 @@
+# .NET build output
+bin/
+obj/
+artifacts/
+publish/
+TestResults/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+# NuGet
+packages/
+*.nupkg
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / misc
+Thumbs.db
+.DS_Store
+*.log
