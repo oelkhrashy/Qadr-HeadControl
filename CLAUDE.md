@@ -15,6 +15,12 @@
 - No .NET SDK is on PATH. Use the pinned SDK 10.0.401 at `D:\Codex_Agents\Qadr\work\toolchain\dotnet\dotnet.exe` (set `DOTNET_ROOT` to that folder).
 - To verify, run only the restore/build/test steps from `build.ps1`; running the whole script also publishes over the packaged app in `outputs/Qadr-Windows`.
 
+## Git & GitHub
+- Remote `origin`: https://github.com/oelkhrashy/Qadr-HeadControl
+- This folder is pushed to branch `native`; local `main` tracks `origin/native`.
+- `origin/main` (code under `Source/`) has an unrelated history and layout. Don't merge into it, pull from it or push to it without asking.
+- Don't commit or push without asking.
+
 ## Tuning
 - Change one gain, filter or gesture threshold at a time.
 - Report before/after results on the same recordings.
