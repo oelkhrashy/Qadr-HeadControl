@@ -19,7 +19,7 @@
 - Remote `origin`: https://github.com/oelkhrashy/Qadr-HeadControl
 - This folder is pushed to branch `native`; local `main` tracks `origin/native`.
 - `origin/main` (code under `Source/`) has an unrelated history and layout. Don't merge into it, pull from it or push to it without asking.
-- Don't commit or push without asking.
+- The user has given standing permission to act in this folder without asking (2026-11-21): commit reviewed work and push to `native`. Still never push to, merge into or pull from `origin/main`, never force-push, and never touch the data folder.
 
 ## Tuning
 - Change one gain, filter or gesture threshold at a time.
